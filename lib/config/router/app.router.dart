@@ -7,13 +7,12 @@ import 'package:app_hackaton/features/dashboard/presentation/screens/dashboard.s
 import 'package:app_hackaton/features/dashboard/presentation/screens/denuncia/detalle-denuncia.screen.dart';
 import 'package:app_hackaton/features/dashboard/presentation/screens/denuncia/generar-denuncia.screen.dart';
 import 'package:app_hackaton/features/dashboard/presentation/screens/denuncia/lista-denuncias.screen.dart';
-import 'package:app_hackaton/features/dashboard/presentation/screens/guido-mrd.screen.dart';
 import 'package:app_hackaton/features/dashboard/presentation/screens/informacion/lista-informativos.screen.dart';
 import 'package:app_hackaton/features/dashboard/presentation/screens/mapa/map-google.screen.dart';
 import 'package:app_hackaton/features/mapbox/presentation/screens/map-box.screen.dart';
 import 'package:go_router/go_router.dart';
 
-final appRouter = GoRouter(initialLocation: '/provincional', routes: [
+final appRouter = GoRouter(initialLocation: '/', routes: [
   GoRoute(path: '/', builder: (context, state) => const AuthScreen()),
   GoRoute(
       path: '/dashboard', builder: (context, state) => const DashBoardScreen()),
@@ -48,6 +47,6 @@ final appRouter = GoRouter(initialLocation: '/provincional', routes: [
     path: '/lista-informativos',
     builder: (context, state) => const ListaInformativoScreen(),
   ),
-  GoRoute(
-      path: '/provincional', builder: (context, state) => const GuidoMamon()),
+  // GoRoute(
+  //     path: '/provincional', builder: (context, state) => const GuidoMamon()),
 ]);

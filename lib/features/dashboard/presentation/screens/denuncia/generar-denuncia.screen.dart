@@ -1,5 +1,7 @@
 import 'package:app_hackaton/config/constant/estilosLetras.constant.dart';
+import 'package:app_hackaton/config/constant/original.const.dart';
 import 'package:app_hackaton/config/constant/paletaColores.constant.dart';
+import 'package:app_hackaton/config/services/camera.gallery.service.impl.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
@@ -12,6 +14,8 @@ class GenerarDenunciaScreen extends StatefulWidget {
 }
 
 class _GenerarDenunciaScreenState extends State<GenerarDenunciaScreen> {
+  String _imagePath =
+      "https://www.idl.org.pe/wp-content/uploads/2023/06/000960559W.jpg";
   TextEditingController? _controller = TextEditingController();
   final stt.SpeechToText _speech = stt.SpeechToText();
   bool _isListening = false;
@@ -77,6 +81,7 @@ class _GenerarDenunciaScreenState extends State<GenerarDenunciaScreen> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final cameraGalleryServiceImpl = CameraGalleryServiceImpl();
 
     return GestureDetector(
       onTap: () {
@@ -91,11 +96,9 @@ class _GenerarDenunciaScreenState extends State<GenerarDenunciaScreen> {
               Container(
                 height: size.height * 0.4,
                 width: size.width,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                     image: DecorationImage(
-                        image: NetworkImage(
-                            "https://revistainnovacion.com/uploads/noticias/5/20210505194159_111_may_21_seguritec.png"),
-                        fit: BoxFit.cover)),
+                        image: NetworkImage(_imagePath), fit: BoxFit.cover)),
               ),
               Positioned(
                   top: size.height * 0.038,
@@ -318,7 +321,15 @@ class _GenerarDenunciaScreenState extends State<GenerarDenunciaScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               GestureDetector(
-                                onTap: () {},
+                                onTap: () async {
+                                  String? imagePath =
+                                      await cameraGalleryServiceImpl
+                                          .takePhoto();
+                                  if (imagePath != null) {
+                                    await _handleImageUpload(imagePath, context,
+                                        "se está subiendo la imagen");
+                                  }
+                                },
                                 child: Container(
                                   height: size.height * 0.06,
                                   width: size.width * 0.12,
@@ -333,7 +344,15 @@ class _GenerarDenunciaScreenState extends State<GenerarDenunciaScreen> {
                                 ),
                               ),
                               GestureDetector(
-                                onTap: () {},
+                                onTap: () async {
+                                  String? imagePath =
+                                      await cameraGalleryServiceImpl
+                                          .selectPhoto();
+                                  if (imagePath != null) {
+                                    await _handleImageUpload(imagePath, context,
+                                        "se está subiendo la imagen");
+                                  }
+                                },
                                 child: Container(
                                   height: size.height * 0.06,
                                   width: size.width * 0.12,
@@ -368,7 +387,9 @@ class _GenerarDenunciaScreenState extends State<GenerarDenunciaScreen> {
                                 ),
                               ),
                               GestureDetector(
-                                onTap: () {},
+                                onTap: () async {
+                                  await _showProcessingDialog(context);
+                                },
                                 child: Container(
                                   height: size.height * 0.06,
                                   width: size.width * 0.12,
@@ -387,6 +408,8 @@ class _GenerarDenunciaScreenState extends State<GenerarDenunciaScreen> {
                                   _controller!.clear();
                                   setState(() {
                                     _typeDenuncia = _denuncias[4];
+                                    _imagePath =
+                                        "https://www.idl.org.pe/wp-content/uploads/2023/06/000960559W.jpg";
                                   });
                                 },
                                 child: Container(
@@ -413,5 +436,234 @@ class _GenerarDenunciaScreenState extends State<GenerarDenunciaScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleImageUpload(
+      String imagePath, BuildContext context, String message) async {
+    final size = MediaQuery.of(context).size;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(size.width * 0.03),
+          ),
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              vertical: size.width * 0.06,
+              horizontal: size.width * 0.06,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(size.width * 0.03),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.19),
+                  offset: const Offset(0, 5),
+                  blurRadius: 10,
+                ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.23),
+                  offset: const Offset(0, 3),
+                  blurRadius: 6,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Subiendo imagen",
+                  style: letterStyle.letra1GD,
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: size.width * 0.04),
+                const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(kPrimaryColor),
+                  strokeWidth: 3,
+                ),
+                SizedBox(height: size.width * 0.04),
+                Text(
+                  "Por favor espere mientras\n$message",
+                  textAlign: TextAlign.center,
+                  style: letterStyle.letra2GD,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    try {
+      String? imageUrl =
+          await CameraGalleryServiceImpl.uploadImageToCloudinary(imagePath);
+      Navigator.pop(context); // Cerrar diálogo de carga
+
+      if (imageUrl != null) {
+        setState(() {
+          _imagePath = imageUrl;
+        });
+
+        // Mostrar mensaje de éxito
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              '¡Imagen subida exitosamente!',
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      Navigator.pop(context); // Cerrar diálogo de carga
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Error al subir la imagen. Intente nuevamente.',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _showProcessingDialog(BuildContext context) async {
+    final size = MediaQuery.of(context).size;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(size.width * 0.03),
+          ),
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              vertical: size.width * 0.06,
+              horizontal: size.width * 0.06,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(size.width * 0.03),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.19),
+                  offset: const Offset(0, 5),
+                  blurRadius: 10,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "Procesando reporte",
+                  style: letterStyle.letra1GD,
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: size.width * 0.04),
+                const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(kPrimaryColor),
+                  strokeWidth: 3,
+                ),
+                SizedBox(height: size.width * 0.04),
+                Text(
+                  "Por favor espere mientras\nse procesa su reporte de incidente...",
+                  textAlign: TextAlign.center,
+                  style: letterStyle.letra2GD,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    try {
+      // Esperar 10 segundos
+      await Future.delayed(const Duration(seconds: 10));
+
+      // Cerrar diálogo
+      Navigator.pop(context);
+
+      // Mostrar SnackBar de éxito
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Padding(
+            padding: EdgeInsets.symmetric(vertical: 8.0),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.check_circle_outline,
+                  color: Colors.white,
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '¡Reporte enviado exitosamente!',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          backgroundColor: Color(0xFF4CAF50),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+          ),
+          elevation: 6,
+        ),
+      );
+    } catch (e) {
+      // Cerrar diálogo
+      Navigator.pop(context);
+
+      // Mostrar SnackBar de error
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Padding(
+            padding: EdgeInsets.symmetric(vertical: 8.0),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  color: Colors.white,
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Error al procesar el reporte. Intente nuevamente.',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          backgroundColor: Color(0xFFE53935),
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+          ),
+          elevation: 6,
+        ),
+      );
+    }
   }
 }
